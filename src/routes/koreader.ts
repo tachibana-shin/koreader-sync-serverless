@@ -18,8 +18,9 @@ import type {
   StatisticsPageStatRow,
   StatisticsSnapshot,
 } from "../types";
+import type { AppEnv } from "../context";
 
-const router = new Hono<{ Bindings: Env }>();
+const router = new Hono<AppEnv>();
 const INVALID_REQUEST_MESSAGE = "Invalid request";
 const DOCUMENT_MISSING_MESSAGE = "Field 'document' not provided.";
 const UNAUTHORIZED_MESSAGE = "Unauthorized";
@@ -231,7 +232,7 @@ router.post("/users/create", async (c) => {
   try {
     const iterations = parsePbkdf2Iterations(c.env);
     const passwordHash = await hashPassword(md5(password), username, c.env.PASSWORD_PEPPER, iterations);
-    await createUser(c.env, username, passwordHash);
+    await createUser(c.get("db"), username, passwordHash);
     return c.json({ username }, 201);
   } catch (error: any) {
     logError(c, "User Creation Failed", error);
@@ -296,7 +297,7 @@ router.put("/syncs/progress", async (c) => {
 
   try {
     const timestamp = Math.floor(Date.now() / 1000);
-    await upsertProgress(c.env, auth.userId, {
+    await upsertProgress(c.get("db"), auth.userId, {
       document,
       progress,
       percentage,
@@ -324,7 +325,7 @@ router.get("/syncs/progress/:document", async (c) => {
   }
 
   try {
-    const row = await getLatestProgressByDocument(c.env, auth.userId, document);
+    const row = await getLatestProgressByDocument(c.get("db"), auth.userId, document);
     // KOReader compatibility: official server always returns 200 and includes the document key.
     if (!row) return c.json({ document });
 
@@ -384,12 +385,12 @@ router.put("/syncs/statistics", async (c) => {
   };
 
   try {
-    const existing = await getStatisticsSnapshot(c.env, auth.userId);
+    const existing = await getStatisticsSnapshot(c.get("db"), auth.userId);
     const existingSnapshot = existing ? parseSnapshotFromJson(existing.snapshot_json) : null;
     const mergedSnapshot = mergeSnapshots(existingSnapshot, incomingSnapshot);
 
     await upsertStatisticsSnapshot(
-      c.env,
+      c.get("db"),
       auth.userId,
       schemaVersion,
       device,
