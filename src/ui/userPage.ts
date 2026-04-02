@@ -204,6 +204,7 @@ export function renderUserPage(locale: Locale): string {
       z-index: 1;
     }
     .table-wrap { overflow: auto; margin-top: 10px; }
+    .table-wrap td:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
     .empty { color: var(--subtle); padding: 14px 0; font-size: 13px; }
     .chip-progress {
       display: inline-flex;
